@@ -10,23 +10,24 @@
 
 using namespace std;
 
+// initialize global variables
 unsigned char *imageData = nullptr;
 int imageChannels;
-string fileType;
+std::string fileType;
 
-int inputImage(){
+int inputImage(RGB* &block, int &width, int &height){
     string inputPath;
     cout << "Masukkan alamat gambar yang akan dikompresi: ";
     getline(cin, inputPath);
     fileType = getFileType(inputPath);
     if (fileType == "PNG"){
-        imageData = stbi_load(inputPath.c_str(), &QuadTree::width, &QuadTree::height, &imageChannels, 4);
+        imageData = stbi_load(inputPath.c_str(), &width, &height, &imageChannels, 4);
     }
     else if (fileType == "JPG"){
-        imageData = stbi_load(inputPath.c_str(), &QuadTree::width, &QuadTree::height, &imageChannels, 3);
+        imageData = stbi_load(inputPath.c_str(), &width, &height, &imageChannels, 3);
     }
     else if (fileType == "JPEG"){
-        imageData = stbi_load(inputPath.c_str(), &QuadTree::width, &QuadTree::height, &imageChannels, 3);
+        imageData = stbi_load(inputPath.c_str(), &width, &height, &imageChannels, 3);
     }
     if (imageData == nullptr){
         cout << "Gambar tidak ditemukan!" << endl;
@@ -38,60 +39,60 @@ int inputImage(){
     }
 
     cout << "✅ Gambar berhasil dimuat!" << endl << endl;
-    imageToBlock();
+    imageToBlock(block, width, height);
 
     return getFileSize(inputPath);
 }
 
-int exportImage(string outputPath){
-    blockToImage();
+int exportImage(string outputPath, RGB* block, int width, int height){
+    blockToImage(block, width, height);
     if (fileType == "PNG"){
-        stbi_write_png(outputPath.c_str(), QuadTree::width, QuadTree::height, 4, imageData, QuadTree::width * 4);
+        stbi_write_png(outputPath.c_str(), width, height, 4, imageData, width * 4);
     }
     else if (fileType == "JPG"){
-        stbi_write_jpg(outputPath.c_str(), QuadTree::width, QuadTree::height, 3, imageData, 50);
+        stbi_write_jpg(outputPath.c_str(), width, height, 3, imageData, 70);
     }
     else if (fileType == "JPEG"){
-        stbi_write_jpg(outputPath.c_str(), QuadTree::width, QuadTree::height, 3, imageData, 50);
+        stbi_write_jpg(outputPath.c_str(), width, height, 3, imageData, 70);
     }
-    cout << "✅ Gambar berhasil diekspor ke: "<< outputPath << endl;
     return getFileSize(outputPath);
 }
 
-void imageToBlock(){
-    QuadTree::block = new RGB[QuadTree::width * QuadTree::height];
-    for (int i = 0; i < QuadTree::height; i++){
-        for (int j = 0; j < QuadTree::width; j++){
+void imageToBlock(RGB* &block, int width, int height){
+    block = new RGB[width * height];
+    for (int i = 0; i < height; i++){
+        for (int j = 0; j < width; j++){
             if (fileType == "PNG"){
-                int index = (i * QuadTree::width + j) * 4;
+                int index = (i * width + j) * 4;
                 unsigned char r = imageData[index + 0]; 
                 unsigned char g = imageData[index + 1];  
                 unsigned char b = imageData[index + 2];  
                 unsigned char a = imageData[index + 3]; 
-                QuadTree::block[i * QuadTree::width + j] = RGB(r, g, b, a);
+                block[i * width + j] = RGB(r, g, b, a);
             }
             else{
-                int index = (i * QuadTree::width + j) * 3;
+                int index = (i * width + j) * 3;
                 unsigned char r = imageData[index + 0];
                 unsigned char g = imageData[index + 1];
                 unsigned char b = imageData[index + 2];
-                QuadTree::block[i * QuadTree::width + j] = RGB(r, g, b);
+                block[i * width + j] = RGB(r, g, b);
             }
         }
     }
+    cout << block << endl;
 }
 
 
-void blockToImage(){
-    for (int i = 0; i < QuadTree::height; i++){
-        for (int j = 0; j < QuadTree::width; j++){
-            RGB color = QuadTree::block[i * QuadTree::width + j];
+void blockToImage(RGB* &block, int width, int height){
+    for (int i = 0; i < height; i++){
+        for (int j = 0; j < width; j++){
+            RGB color = block[i * width + j];
             int index;
             if (fileType == "PNG"){
-                index = (i * QuadTree::width + j) * 4;
+                index = (i * width + j) * 4;
             }
             else{
-                index = (i * QuadTree::width + j) * 3;
+                index = (i * width + j) * 3;
             }
             imageData[index + 0] = color.red;
             imageData[index + 1] = color.green;
@@ -102,14 +103,14 @@ void blockToImage(){
 }
 
 
-void inputErrorMethod(){
+void inputErrorMethod(int &errorChoice){
     cout << "Pilih metode error: " << endl;
     cout << "  1. Variance" << endl;
     cout << "  2. Mean Absolute Deviation (MAD)" << endl;
     cout << "  3. Max Pixel Difference" << endl;
     cout << "  4. Entropy" << endl;
-    // cout << "  5. Structural Similarity Index (SSIM)" << endl;
-    cout << "Masukkan pilihan (1-4): ";
+    cout << "  5. Structural Similarity Index (SSIM)" << endl;
+    cout << "Masukkan pilihan [1-5]: ";
     string input;
     getline(cin, input);
     stringstream ss(input);
@@ -119,21 +120,9 @@ void inputErrorMethod(){
         cout << "Pilihan tidak valid!" << endl;
         exit(0);
     }
-    if (choice == 1){
-        QuadTree::varianceChoice = 1;
+    if (choice >= 1 && choice <= 5){
+        errorChoice = choice;
     }
-    else if (choice == 2){
-        QuadTree::varianceChoice = 2;
-    }
-    else if (choice == 3){
-        QuadTree::varianceChoice = 3;
-    }
-    else if (choice == 4){
-        QuadTree::varianceChoice = 4;
-    }
-    // else if (choice == 5){
-    //     QuadTree::varianceChoice = 5;
-    // }
     else{
         cout << "Pilihan tidak valid!" << endl ;
         exit(0);
@@ -141,34 +130,51 @@ void inputErrorMethod(){
     cout << endl;
 }
 
+double inputCompressionTarget(){
+    cout << "Masukkan target kompresi [0.0-1.0]: ";
+    string input;
+    getline(cin, input);
+    stringstream ss(input);
+    double target;
+    ss >> target;
+    if (ss.fail() || !ss.eof()){
+        cout << "Target kompresi tidak valid!" << endl;
+        exit(0);
+    }
+    if (target < 0 || target > 1){
+        cout << "Target kompresi tidak valid!" << endl;
+        exit(0);
+    }
+    return target;
+}
 
-void inputTreshold(){
+void inputTreshold(double &threshold){
     cout << "Masukkan ambang batas error: ";
     string input;
     getline(cin, input);
     stringstream ss(input);
-    ss >> QuadTree::threshold;
+    ss >> threshold;
     if (ss.fail() || !ss.eof()){
         cout << "Ambang batas tidak valid!" << endl;
         exit(0);
     }
-    if (QuadTree::threshold < 0){
+    if (threshold < 0){
         cout << "Ambang batas tidak valid!" << endl;
         exit(0);
     }
 }
 
-void inputMinBlockSize(){
+void inputMinBlockSize(int &minimumBlockSize){
     cout << "Masukkan ukuran blok minimum: ";
     string input;
     getline(cin, input);
     stringstream ss(input);
-    ss >> QuadTree::minimumBlockSize;
+    ss >> minimumBlockSize;
     if (ss.fail() || !ss.eof()){
         cout << "Ukuran blok minimum tidak valid!" << endl;
         exit(0);
     }
-    if (QuadTree::minimumBlockSize < 1){
+    if (minimumBlockSize < 1){
         cout << "Ukuran blok minimum tidak valid!" << endl;
         exit(0);
     }
@@ -229,13 +235,9 @@ string getFileType(string filename){
     return type;
 }
 
-RGB* copyQtBlock(){
-    RGB* output = new RGB[QuadTree::width * QuadTree::height];
-    for (int i = 0; i < QuadTree::width * QuadTree::height; i++)
-        output[i] = QuadTree::block[i];
-    return output;
+void freeData(){
+    stbi_image_free(imageData);
 }
-
 
 #endif
 #endif

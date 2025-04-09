@@ -1,16 +1,15 @@
 #ifndef QUADTREE_HPP
 #define QUADTREE_HPP
 
-#include "RGB.hpp"
+#include "Input.hpp"
 #include <cmath>
 #include <vector>
-#include <iostream>
 #include <algorithm>
 
 class QuadTree
 {
 private:
-    int startHeight, startWidth, currentHeight, currentWidth;
+    int startHeight, startWidth, currentHeight, currentWidth, error;
     bool isSmallest;
     QuadTree* topLeftChild;
     QuadTree* topRightChild;
@@ -20,7 +19,7 @@ private:
 public:
     static int height, width, numNodes;
     static RGB* block;
-    static int varianceChoice, minimumBlockSize;
+    static int errorChoice, minimumBlockSize;
     static double threshold; 
     static std::vector<std::vector<QuadTree*>> nodesAtDepth;
 
@@ -36,7 +35,7 @@ public:
     /*
         Setting value of Block at height h, width w
     */
-    void setValue(int h, int w, RGB value, RGB* Block);
+    void setValue(int h, int w, RGB value, RGB* Block, unsigned char* ImageData, bool gif);
 
     /*
         Getting value of the static variable block at height h, width w
@@ -55,24 +54,29 @@ public:
     RGB getMax();
     RGB getMax(RGB* Block);
 
-
     double variance();
     double meanAbsoluteDeviation();
     double maxPixelDifference();
     double entropy();
     double structuralSimilarityIndex(); // BONUS
+    double getError();
 
-    void checkDivideBlock();
+    void divConq();
+    double divConq(double currentThreshold, RGB* referenceBlock);
+    int compressImage(string exportPath, RGB* image, double targetCompression, int originalFileSize);
 
     void colorNormalization();
-    void colorNormalization(RGB* referenceBlock, RGB* Block);
-
+    void colorNormalization(RGB* referenceBlock, RGB* Block, unsigned char* ImageData, bool gif = false);
 
     int getDepth();
 
     void buildNodesAtDepth(int depth = 0);
 
     void generateGIF(RGB* image, std::string outputPath);
+
+    static RGB* copyBlock();
+
+    static void copyBlock(RGB* &Block);
 
     // Belum bikin function untuk ngeset value array block biar otomatis. Untuk sementara harus manual pake set value.
 };

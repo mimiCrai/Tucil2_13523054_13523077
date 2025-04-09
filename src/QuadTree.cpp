@@ -4,19 +4,17 @@
 #include "include/gif.h"
 #include "QuadTree.hpp"
 
-int QuadTree::varianceChoice = 1;
-int QuadTree::minimumBlockSize = 10;
-int QuadTree::height = 0;
-int QuadTree::width = 0;
-int QuadTree::numNodes = 1;
-double QuadTree::threshold = 100;
-RGB* QuadTree::block = nullptr;
-std::vector<std::vector<QuadTree*>> QuadTree::nodesAtDepth;
+// initialize static variables
+int QuadTree::errorChoice, QuadTree::minimumBlockSize, QuadTree::height, QuadTree::width, QuadTree::numNodes = 0;
+double QuadTree::threshold;
+RGB* QuadTree::block;
+vector<vector<QuadTree*>> QuadTree::nodesAtDepth;
 
 
 QuadTree::QuadTree(int currentH, int currentW, int startH, int startW) : currentHeight(currentH), currentWidth(currentW), startHeight(startH), startWidth(startW)
 {
     isSmallest = true;
+    error = -1;
     numNodes++;
     topLeftChild = topRightChild = bottomLeftChild = bottomRightChild = nullptr;
 }
@@ -24,30 +22,55 @@ QuadTree::QuadTree(int currentH, int currentW, int startH, int startW) : current
 QuadTree::QuadTree()
 {
     isSmallest = true;
+    error = -1;
     startHeight = 0, startWidth = 0;
     currentHeight = height, currentWidth = width;
     topLeftChild = topRightChild = bottomLeftChild = bottomRightChild = nullptr;
 }
 
-QuadTree::~QuadTree(){}
+QuadTree::~QuadTree(){
+    delete topLeftChild;
+    delete topRightChild;
+    delete bottomLeftChild;
+    delete bottomRightChild;
+}
 
 void QuadTree::setValue(int h, int w, RGB value)
 {
     block[h * width + w].red = value.red;
     block[h * width + w].green = value.green;
     block[h * width + w].blue = value.blue;
+    int index;
+    if (fileType == "PNG") 
+        index = (h * width + w) * 4;
+    else 
+        index = (h * width + w) * 3;
+
+    imageData[index + 0] = value.red;
+    imageData[index + 1] = value.green;
+    imageData[index + 2] = value.blue;
+}
+
+void QuadTree::setValue(int h, int w, RGB value, RGB* Block, unsigned char* ImageData, bool gif)
+{
+    Block[h * width + w].red = value.red;
+    Block[h * width + w].green = value.green;
+    Block[h * width + w].blue = value.blue;
+
+    int index;
+    if (fileType == "PNG" || gif) 
+        index = (h * width + w) * 4;
+    else 
+        index = (h * width + w) * 3;
+
+    ImageData[index + 0] = value.red;
+    ImageData[index + 1] = value.green;
+    ImageData[index + 2] = value.blue;
 }
 
 RGB QuadTree::getValue(int h, int w)
 {
     return block[h * width + w];
-}
-
-void QuadTree::setValue(int h, int w, RGB value, RGB* Block)
-{
-    Block[h * width + w].red = value.red;
-    Block[h * width + w].green = value.green;
-    Block[h * width + w].blue = value.blue;
 }
 
 RGB QuadTree::getValue(int h, int w, RGB* Block)
@@ -169,9 +192,9 @@ double QuadTree::maxPixelDifference()
 //masuk rumus 4
 double QuadTree::entropy()
 {
-    std::vector<int> redFrequency(256, 0);
-    std::vector<int> greenFrequency(256, 0);
-    std::vector<int> blueFrequency(256, 0);
+    vector<int> redFrequency(256, 0);
+    vector<int> greenFrequency(256, 0);
+    vector<int> blueFrequency(256, 0);
 
     double entropy = 0.0;
     int total_pixel = currentHeight * currentWidth;
@@ -291,24 +314,47 @@ double QuadTree::structuralSimilarityIndex()
     return structural_similarity_index;
 }
 
+double QuadTree::getError(){
+    if (error != -1) return error;
+    if(errorChoice == 1) error = variance();
+    else if(errorChoice == 2) error = meanAbsoluteDeviation();
+    else if(errorChoice == 3) error = maxPixelDifference();
+    else if(errorChoice == 4) error = entropy();
+    else if(errorChoice == 5) error = structuralSimilarityIndex();
+    else error = 0;
+    return error;
+}
 
 //algoritma divide&conquer disini
-void QuadTree::checkDivideBlock()
+void QuadTree::divConq()
 {
-    if(currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
+    double Error = getError();
+    if(Error >= threshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
     {
-        double Variance;
-        if(varianceChoice == 1) Variance = variance();
-        else if(varianceChoice == 2) Variance = meanAbsoluteDeviation();
-        else if(varianceChoice == 3) Variance = maxPixelDifference();
-        else if(varianceChoice == 4) Variance = entropy();
-        // =========================BONUS==========================
-        else if(varianceChoice == 5) Variance = structuralSimilarityIndex();
-        // ========================================================
-        // Error handling kalo user memasukkan input tidak valid
-        else Variance = 0;
-        
-        if(Variance > threshold)
+        isSmallest = false;
+        //bagi block jadi 4
+        int halfHeight = currentHeight / 2;
+        int halfWidth = currentWidth / 2;
+        int remainingHeight = currentHeight - halfHeight;
+        int remainingWidth = currentWidth - halfWidth;
+
+        topLeftChild = new QuadTree(halfHeight, halfWidth, startHeight, startWidth);
+        topRightChild = new QuadTree(halfHeight, remainingWidth, startHeight, startWidth + halfWidth);
+        bottomLeftChild = new QuadTree(remainingHeight, halfWidth, startHeight + halfHeight, startWidth);
+        bottomRightChild = new QuadTree(remainingHeight, remainingWidth, startHeight + halfHeight, startWidth + halfWidth);
+
+        topLeftChild->divConq();
+        topRightChild->divConq();
+        bottomLeftChild->divConq();
+        bottomRightChild->divConq();
+    }
+    else colorNormalization();
+}
+
+double QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
+    if(isSmallest){
+        double Error = getError();
+        if(Error >= currentThreshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
         {
             isSmallest = false;
             //bagi block jadi 4
@@ -321,18 +367,55 @@ void QuadTree::checkDivideBlock()
             topRightChild = new QuadTree(halfHeight, remainingWidth, startHeight, startWidth + halfWidth);
             bottomLeftChild = new QuadTree(remainingHeight, halfWidth, startHeight + halfHeight, startWidth);
             bottomRightChild = new QuadTree(remainingHeight, remainingWidth, startHeight + halfHeight, startWidth + halfWidth);
-
-            topLeftChild->checkDivideBlock();
-            topRightChild->checkDivideBlock();
-            bottomLeftChild->checkDivideBlock();
-            bottomRightChild->checkDivideBlock();
         }
-        else colorNormalization();
+        else {
+            colorNormalization(referenceBlock, block, imageData);
+            return error;
+        }
     }
-    else colorNormalization();
-    
+    double maks = -1;
+    double child1 = topLeftChild->divConq(currentThreshold, referenceBlock);
+    double child2 = topRightChild->divConq(currentThreshold, referenceBlock);
+    double child3 = bottomLeftChild->divConq(currentThreshold, referenceBlock);
+    double child4 = bottomRightChild->divConq(currentThreshold, referenceBlock);
+    if (child1 <= currentThreshold) maks = max(maks, child1);
+    if (child2 <= currentThreshold) maks = max(maks, child2);
+    if (child3 <= currentThreshold) maks = max(maks, child3);
+    if (child4 <= currentThreshold) maks = max(maks, child4);
+    return maks;
 }
 
+int QuadTree::compressImage(string exportPath, RGB* image, double targetCompression, int originalFileSize)
+{
+    if (targetCompression == 0) {
+        divConq();
+        return exportImage(exportPath, block, width, height);
+    }
+    targetCompression = originalFileSize - targetCompression*originalFileSize;
+    double currThreshold = getError();
+    int currNodeNum;
+    int best = targetCompression;
+    RGB* bestBlock = new RGB[width * height];
+    do {
+        currNodeNum = numNodes;
+        currThreshold = divConq(currThreshold, image);
+        int fileSize = exportImage(exportPath, block, width, height);
+        // cout << currThreshold << ' ' << currNodeNum << ' ' << targetCompression << ' ' << fileSize << ' ' << (double) (originalFileSize - fileSize) / originalFileSize << endl;
+        if (abs(fileSize - targetCompression) < best) {
+            best = abs(fileSize - targetCompression);
+            copyBlock(bestBlock);
+            threshold = currThreshold;
+        }
+        if (fileSize > targetCompression){
+            break;
+        }
+    }
+    while (currNodeNum != numNodes);
+    cout << "✅ Gambar berhasil diekspor ke: "<< exportPath << endl;
+    int fileSize = exportImage(exportPath, bestBlock, width, height);
+    delete[] bestBlock;
+    return fileSize;
+}
 
 void QuadTree::colorNormalization()
 {
@@ -342,12 +425,12 @@ void QuadTree::colorNormalization()
             setValue(i, j, normalized);
 }
 
-void QuadTree::colorNormalization(RGB* referenceBlock, RGB* Block)
+void QuadTree::colorNormalization(RGB* referenceBlock, RGB* Block, unsigned char* ImageData, bool gif)
 {
     RGB normalized = getMean(referenceBlock);
     for (int i = startHeight; i < startHeight + currentHeight; i++)
         for (int j = startWidth; j < startWidth + currentWidth; j++)
-            setValue(i, j, normalized, Block);
+            setValue(i, j, normalized, Block, ImageData, gif);
 }
 
 //max depth dfs
@@ -368,7 +451,6 @@ int QuadTree::getDepth()
     }
 }
 
-
 void QuadTree::buildNodesAtDepth(int depth){
     nodesAtDepth[depth].push_back(this);
     if (isSmallest) return;
@@ -378,35 +460,41 @@ void QuadTree::buildNodesAtDepth(int depth){
     bottomRightChild->buildNodesAtDepth(depth + 1);
 }
 
-
-void QuadTree::generateGIF(RGB* image, std::string outputPath){
+void QuadTree::generateGIF(RGB* image, string outputPath){
     RGB* gifImage = new RGB[width * height];
     unsigned char* gifImageData = new unsigned char[width * height * 4];
+    for (int i = 0; i < width * height * 4; i += 4){
+        gifImageData[i] = 255;
+    }
 
     GifWriter gif;
     GifBegin(&gif, outputPath.c_str(), width, height, 100);
     
     for (int i = 0; i < nodesAtDepth.size(); i++){
         for (QuadTree* qt: nodesAtDepth[i]){
-            qt->colorNormalization(image, gifImage);
-        }
-        for (int j = 0; j < height; j++){
-            for (int k = 0; k < width; k++){
-                int index = (j * width + k) * 4;
-                gifImageData[index + 0] = getValue(j, k, gifImage).red;
-                gifImageData[index + 1] = getValue(j, k, gifImage).green;
-                gifImageData[index + 2] = getValue(j, k, gifImage).blue;
-                gifImageData[index + 3] = getValue(j, k, image).alpha;
-            }
+            qt->colorNormalization(image, gifImage, gifImageData, true);
         }
         GifWriteFrame(&gif, gifImageData, width, height, 100);
     }
 
     GifEnd(&gif);
 
-    std::cout << "✅ GIF berhasil digenerate ke: "<< outputPath << std::endl;
+    cout << "✅ GIF berhasil digenerate ke: "<< outputPath << endl;
     delete[] gifImage;
     delete[] gifImageData;
+}
+
+
+RGB* QuadTree::copyBlock(){
+    RGB* output = new RGB[width * height];
+    for (int i = 0; i < width * height; i++)
+        output[i] = block[i];
+    return output;
+}
+
+void QuadTree::copyBlock(RGB* &Block){
+    for (int i = 0; i < width * height; i++)
+        Block[i] = block[i];
 }
 
 #endif

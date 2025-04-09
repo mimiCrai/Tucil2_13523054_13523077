@@ -1,9 +1,10 @@
 #ifndef INPUT_HPP
 #define INPUT_HPP
 
-#include "QuadTree.hpp"
+#include "RGB.hpp"
 #include <sstream>
 #include <string>
+#include <iostream>
 using namespace std;
 
 extern unsigned char *imageData;
@@ -17,28 +18,30 @@ extern int imageChannels;
 */
 extern string fileType; 
 
-int inputImage();
+int inputImage(RGB* &block, int &width, int &height);
 
-void imageToBlock();
+void imageToBlock(RGB* &block, int width, int height);
 
-void blockToImage();
+void blockToImage(RGB* &block, int width, int height);
 
-void inputErrorMethod();
+void inputErrorMethod(int &errorChoice);
 
-void inputTreshold();
+double inputCompressionTarget();
 
-void inputMinBlockSize();
+void inputTreshold(double &threshold);
+
+void inputMinBlockSize(int &minimumBlockSize);
 
 string inputExportPath();
 
 string inputGifPath();
 
-int exportImage(string outputPath);
+int exportImage(string outputPath, RGB* block, int width, int height);
 
 int getFileSize(string filename);
 
 string getFileType(string filename);
 
-RGB* copyQtBlock();
+void freeData();
 
 #endif
