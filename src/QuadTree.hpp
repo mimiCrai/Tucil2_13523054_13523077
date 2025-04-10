@@ -9,18 +9,19 @@
 class QuadTree
 {
 private:
-    int startHeight, startWidth, currentHeight, currentWidth, error;
-    bool isSmallest;
+    double error;
     QuadTree* topLeftChild;
     QuadTree* topRightChild;
     QuadTree* bottomLeftChild;
     QuadTree* bottomRightChild;
+    int startHeight, startWidth, currentHeight, currentWidth;
+    bool isSmallest;
 
 public:
-    static int height, width, numNodes;
-    static RGB* block;
-    static int errorChoice, minimumBlockSize;
     static double threshold; 
+    static RGB* block;
+    static int height, width, numNodes;
+    static int errorChoice, minimumBlockSize;
     static std::vector<std::vector<QuadTree*>> nodesAtDepth;
 
     QuadTree();
@@ -47,19 +48,16 @@ public:
     */
     RGB getValue(int h, int w, RGB* Block);
 
-    RGB getMean();
     RGB getMean(RGB* Block);
-    RGB getMin();
     RGB getMin(RGB* Block);
-    RGB getMax();
     RGB getMax(RGB* Block);
 
-    double variance();
-    double meanAbsoluteDeviation();
-    double maxPixelDifference();
-    double entropy();
-    double structuralSimilarityIndex(); // BONUS
-    double getError();
+    double variance(RGB* Block);
+    double meanAbsoluteDeviation(RGB* Block);
+    double maxPixelDifference(RGB* Block);
+    double entropy(RGB* Block);
+    double structuralSimilarityIndex(RGB* Block); // BONUS
+    double getError(RGB* Block);
 
     void divConq();
     double divConq(double currentThreshold, RGB* referenceBlock);

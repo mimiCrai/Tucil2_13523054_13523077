@@ -47,7 +47,7 @@ RGB& RGB::operator+=(const RGB& other){
     return *this;
 }
 
-RGB& RGB::operator/=(const int x){
+RGB& RGB::operator/=(const double x){
     red /= x;
     green /= x;
     blue /= x;

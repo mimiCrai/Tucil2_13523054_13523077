@@ -23,6 +23,7 @@ QuadTree::QuadTree()
 {
     isSmallest = true;
     error = -1;
+    numNodes++;
     startHeight = 0, startWidth = 0;
     currentHeight = height, currentWidth = width;
     topLeftChild = topRightChild = bottomLeftChild = bottomRightChild = nullptr;
@@ -78,34 +79,14 @@ RGB QuadTree::getValue(int h, int w, RGB* Block)
     return Block[h * width + w];
 }
 
-RGB QuadTree::getMean()
-{
-    RGB mean;
-    for (int i = startHeight; i < startHeight + currentHeight; i++)
-        for (int j = startWidth; j < startWidth + currentWidth; j++)
-            mean += getValue(i, j);
-    int total_pixel = currentHeight * currentWidth;
-    mean /= total_pixel;
-    return mean;
-}
-
 RGB QuadTree::getMean(RGB* Block){
     RGB mean;
     for (int i = startHeight; i < startHeight + currentHeight; i++)
         for (int j = startWidth; j < startWidth + currentWidth; j++)
             mean += getValue(i, j, Block);
-    int total_pixel = currentHeight * currentWidth;
+    double total_pixel = currentHeight * currentWidth;
     mean /= total_pixel;
     return mean;
-}
-
-RGB QuadTree::getMin()
-{
-    RGB mini(255, 255, 255, 255);
-    for (int i = startHeight; i < startHeight + currentHeight; i++)
-        for (int j = startWidth; j < startWidth + currentWidth; j++)
-            mini = min(mini, getValue(i, j));
-    return mini;
 }
 
 RGB QuadTree::getMin(RGB *Block)
@@ -115,15 +96,6 @@ RGB QuadTree::getMin(RGB *Block)
         for (int j = startWidth; j < startWidth + currentWidth; j++)
             mini = min(mini, getValue(i, j, Block));
     return mini;
-}
-
-RGB QuadTree::getMax()
-{
-    RGB maks;
-    for (int i = startHeight; i < startHeight + currentHeight; i++)
-        for (int j = startWidth; j < startWidth + currentWidth; j++)
-            maks = max(maks, getValue(i, j));
-    return maks;
 }
 
 RGB QuadTree::getMax(RGB* Block)
@@ -136,38 +108,38 @@ RGB QuadTree::getMax(RGB* Block)
 }
 
 //masuk rumus 1
-double QuadTree::variance()
+double QuadTree::variance(RGB* Block)
 {
     double variance = 0;
-    RGB mean = getMean();
+    RGB mean = getMean(Block);
     for (int i = startHeight; i < startHeight + currentHeight; i++)
     {
         for (int j = startWidth; j < startWidth + currentWidth; j++)
         {
-            variance += pow(getValue(i, j).red - mean.red, 2);
-            variance += pow(getValue(i, j).green - mean.green, 2);
-            variance += pow(getValue(i, j).blue - mean.blue, 2);
+            variance += pow(getValue(i, j, Block).red - mean.red, 2);
+            variance += pow(getValue(i, j, Block).green - mean.green, 2);
+            variance += pow(getValue(i, j, Block).blue - mean.blue, 2);
         }
     }
     int total_pixel = currentHeight * currentWidth;
-    variance /= total_pixel;
-    variance /= 3;
+    variance /= (double) total_pixel;
+    variance /= (double) 3;
 
     return variance;
 }
 
 //masuk rumus 2
-double QuadTree::meanAbsoluteDeviation()
+double QuadTree::meanAbsoluteDeviation(RGB* Block)
 {
     double mean_absolute_deviation = 0;
-    RGB mean = getMean();
+    RGB mean = getMean(Block);
     for (int i = startHeight; i < startHeight + currentHeight; i++)
     {
         for (int j = startWidth; j < startWidth + currentWidth; j++)
         {
-            mean_absolute_deviation += abs(getValue(i, j).red - mean.red);
-            mean_absolute_deviation += abs(getValue(i, j).green - mean.green);
-            mean_absolute_deviation += abs(getValue(i, j).blue - mean.blue);
+            mean_absolute_deviation += abs(getValue(i, j, Block).red - mean.red);
+            mean_absolute_deviation += abs(getValue(i, j, Block).green - mean.green);
+            mean_absolute_deviation += abs(getValue(i, j, Block).blue - mean.blue);
         }
     }
     int total_pixel = currentHeight * currentWidth;
@@ -177,11 +149,11 @@ double QuadTree::meanAbsoluteDeviation()
 }
 
 //masuk rumus 3
-double QuadTree::maxPixelDifference()
+double QuadTree::maxPixelDifference(RGB* Block)
 {
     double max_pixel_difference = 0;
-    RGB min = getMin();
-    RGB max = getMax();
+    RGB min = getMin(Block);
+    RGB max = getMax(Block);
     max_pixel_difference += abs(max.red - min.red); //abs disini ga wajib si
     max_pixel_difference += abs(max.green - min.green);
     max_pixel_difference += abs(max.blue - min.blue);
@@ -190,7 +162,7 @@ double QuadTree::maxPixelDifference()
 }
 
 //masuk rumus 4
-double QuadTree::entropy()
+double QuadTree::entropy(RGB* Block)
 {
     vector<int> redFrequency(256, 0);
     vector<int> greenFrequency(256, 0);
@@ -203,9 +175,9 @@ double QuadTree::entropy()
     {
         for (int j = startWidth; j < startWidth + currentWidth; j++)
         {
-            redFrequency[getValue(i, j).red]++;
-            greenFrequency[getValue(i, j).green]++;
-            blueFrequency[getValue(i, j).blue]++;
+            redFrequency[getValue(i, j, Block).red]++;
+            greenFrequency[getValue(i, j, Block).green]++;
+            blueFrequency[getValue(i, j, Block).blue]++;
         }
     }
     // calc entropy
@@ -232,10 +204,10 @@ double QuadTree::entropy()
 }
 
 //masuk rumus 5
-double QuadTree::structuralSimilarityIndex()
+double QuadTree::structuralSimilarityIndex(RGB* Block)
 {
     double structural_similarity_index = 0;
-    RGB mean = getMean();
+    RGB mean = getMean(Block);
     int total_pixel = currentHeight * currentWidth;
     double sum_x_2_red = 0, sum_x_y_red = 0;
     double sum_x_2_green = 0, sum_x_y_green = 0;
@@ -245,14 +217,14 @@ double QuadTree::structuralSimilarityIndex()
     {
         for (int j = startWidth; j < startWidth + currentWidth; j++)
         {
-            sum_x_2_red += pow(getValue(i, j).red, 2);
-            sum_x_y_red += getValue(i, j).red * mean.red;
+            sum_x_2_red += pow(getValue(i, j, Block).red, 2);
+            sum_x_y_red += getValue(i, j, Block).red * mean.red;
 
-            sum_x_2_green += pow(getValue(i, j).green, 2);
-            sum_x_y_green += getValue(i, j).green * mean.green;
+            sum_x_2_green += pow(getValue(i, j, Block).green, 2);
+            sum_x_y_green += getValue(i, j, Block).green * mean.green;
 
-            sum_x_2_blue += pow(getValue(i, j).blue, 2);
-            sum_x_y_blue += getValue(i, j).blue * mean.blue;
+            sum_x_2_blue += pow(getValue(i, j, Block).blue, 2);
+            sum_x_y_blue += getValue(i, j, Block).blue * mean.blue;
         }
     }
     
@@ -314,13 +286,13 @@ double QuadTree::structuralSimilarityIndex()
     return structural_similarity_index;
 }
 
-double QuadTree::getError(){
+double QuadTree::getError(RGB* Block){
     if (error != -1) return error;
-    if(errorChoice == 1) error = variance();
-    else if(errorChoice == 2) error = meanAbsoluteDeviation();
-    else if(errorChoice == 3) error = maxPixelDifference();
-    else if(errorChoice == 4) error = entropy();
-    else if(errorChoice == 5) error = structuralSimilarityIndex();
+    if(errorChoice == 1) error = variance(Block);
+    else if(errorChoice == 2) error = meanAbsoluteDeviation(Block);
+    else if(errorChoice == 3) error = maxPixelDifference(Block);
+    else if(errorChoice == 4) error = entropy(Block);
+    else if(errorChoice == 5) error = structuralSimilarityIndex(Block);
     else error = 0;
     return error;
 }
@@ -328,7 +300,7 @@ double QuadTree::getError(){
 //algoritma divide&conquer disini
 void QuadTree::divConq()
 {
-    double Error = getError();
+    double Error = getError(block);
     if(Error >= threshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
     {
         isSmallest = false;
@@ -353,7 +325,7 @@ void QuadTree::divConq()
 
 double QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
     if(isSmallest){
-        double Error = getError();
+        double Error = getError(referenceBlock);
         if(Error >= currentThreshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
         {
             isSmallest = false;
@@ -378,10 +350,10 @@ double QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
     double child2 = topRightChild->divConq(currentThreshold, referenceBlock);
     double child3 = bottomLeftChild->divConq(currentThreshold, referenceBlock);
     double child4 = bottomRightChild->divConq(currentThreshold, referenceBlock);
-    if (child1 <= currentThreshold) maks = max(maks, child1);
-    if (child2 <= currentThreshold) maks = max(maks, child2);
-    if (child3 <= currentThreshold) maks = max(maks, child3);
-    if (child4 <= currentThreshold) maks = max(maks, child4);
+    if (child1 < currentThreshold) maks = max(maks, child1);
+    if (child2 < currentThreshold) maks = max(maks, child2);
+    if (child3 < currentThreshold) maks = max(maks, child3);
+    if (child4 < currentThreshold) maks = max(maks, child4);
     return maks;
 }
 
@@ -392,15 +364,16 @@ int QuadTree::compressImage(string exportPath, RGB* image, double targetCompress
         return exportImage(exportPath, block, width, height);
     }
     targetCompression = originalFileSize - targetCompression*originalFileSize;
-    double currThreshold = getError();
-    int currNodeNum;
+    double currThreshold = MAXFLOAT;
+    int currNodeNum = 0;
     int best = targetCompression;
     RGB* bestBlock = new RGB[width * height];
     do {
         currNodeNum = numNodes;
         currThreshold = divConq(currThreshold, image);
         int fileSize = exportImage(exportPath, block, width, height);
-        // cout << currThreshold << ' ' << currNodeNum << ' ' << targetCompression << ' ' << fileSize << ' ' << (double) (originalFileSize - fileSize) / originalFileSize << endl;
+        cout << currThreshold << ' ' << currNodeNum << ' ' << numNodes << ' ' << targetCompression << ' ' << fileSize << ' ' << (double) (originalFileSize - fileSize) / originalFileSize << endl;
+        cout << "depth: " << getDepth() << endl;
         if (abs(fileSize - targetCompression) < best) {
             best = abs(fileSize - targetCompression);
             copyBlock(bestBlock);
@@ -410,7 +383,7 @@ int QuadTree::compressImage(string exportPath, RGB* image, double targetCompress
             break;
         }
     }
-    while (currNodeNum != numNodes);
+    while (currThreshold != -1);
     cout << "✅ Gambar berhasil diekspor ke: "<< exportPath << endl;
     int fileSize = exportImage(exportPath, bestBlock, width, height);
     delete[] bestBlock;
@@ -419,7 +392,7 @@ int QuadTree::compressImage(string exportPath, RGB* image, double targetCompress
 
 void QuadTree::colorNormalization()
 {
-    RGB normalized = getMean();
+    RGB normalized = getMean(block);
     for (int i = startHeight; i < startHeight + currentHeight; i++)
         for (int j = startWidth; j < startWidth + currentWidth; j++)
             setValue(i, j, normalized);
@@ -468,13 +441,13 @@ void QuadTree::generateGIF(RGB* image, string outputPath){
     }
 
     GifWriter gif;
-    GifBegin(&gif, outputPath.c_str(), width, height, 100);
+    GifBegin(&gif, outputPath.c_str(), width, height, 50);
     
     for (int i = 0; i < nodesAtDepth.size(); i++){
         for (QuadTree* qt: nodesAtDepth[i]){
             qt->colorNormalization(image, gifImage, gifImageData, true);
         }
-        GifWriteFrame(&gif, gifImageData, width, height, 100);
+        GifWriteFrame(&gif, gifImageData, width, height, 50);
     }
 
     GifEnd(&gif);
