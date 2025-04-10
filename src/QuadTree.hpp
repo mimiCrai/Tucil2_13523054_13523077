@@ -75,8 +75,6 @@ public:
     static RGB* copyBlock();
 
     static void copyBlock(RGB* &Block);
-
-    // Belum bikin function untuk ngeset value array block biar otomatis. Untuk sementara harus manual pake set value.
 };
 
 #endif
