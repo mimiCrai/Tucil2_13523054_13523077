@@ -323,11 +323,11 @@ void QuadTree::divConq()
     else colorNormalization();
 }
 
-double QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
-    if(isSmallest){
-        double Error = getError(referenceBlock);
-        if(Error >= currentThreshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
-        {
+void QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
+    double Error = getError(referenceBlock);
+    if(Error >= currentThreshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
+    {
+        if(isSmallest){
             isSmallest = false;
             //bagi block jadi 4
             int halfHeight = currentHeight / 2;
@@ -340,21 +340,14 @@ double QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
             bottomLeftChild = new QuadTree(remainingHeight, halfWidth, startHeight + halfHeight, startWidth);
             bottomRightChild = new QuadTree(remainingHeight, remainingWidth, startHeight + halfHeight, startWidth + halfWidth);
         }
-        else {
-            colorNormalization(referenceBlock, block, imageData);
-            return error;
-        }
+        topLeftChild->divConq(currentThreshold, referenceBlock);
+        topRightChild->divConq(currentThreshold, referenceBlock);
+        bottomLeftChild->divConq(currentThreshold, referenceBlock);
+        bottomRightChild->divConq(currentThreshold, referenceBlock);
     }
-    double maks = -1;
-    double child1 = topLeftChild->divConq(currentThreshold, referenceBlock);
-    double child2 = topRightChild->divConq(currentThreshold, referenceBlock);
-    double child3 = bottomLeftChild->divConq(currentThreshold, referenceBlock);
-    double child4 = bottomRightChild->divConq(currentThreshold, referenceBlock);
-    if (child1 < currentThreshold) maks = max(maks, child1);
-    if (child2 < currentThreshold) maks = max(maks, child2);
-    if (child3 < currentThreshold) maks = max(maks, child3);
-    if (child4 < currentThreshold) maks = max(maks, child4);
-    return maks;
+    else {
+        colorNormalization(referenceBlock, block, imageData);
+    }
 }
 
 int QuadTree::compressImage(string exportPath, RGB* image, double targetCompression, int originalFileSize)
@@ -363,30 +356,31 @@ int QuadTree::compressImage(string exportPath, RGB* image, double targetCompress
         divConq();
         return exportImage(exportPath, block, width, height);
     }
+    double percentageTarget = targetCompression;
     targetCompression = originalFileSize - targetCompression*originalFileSize;
-    double currThreshold = MAXFLOAT;
     int currNodeNum = 0;
-    int best = targetCompression;
-    RGB* bestBlock = new RGB[width * height];
-    do {
-        currNodeNum = numNodes;
-        currThreshold = divConq(currThreshold, image);
-        int fileSize = exportImage(exportPath, block, width, height);
-        cout << currThreshold << ' ' << currNodeNum << ' ' << numNodes << ' ' << targetCompression << ' ' << fileSize << ' ' << (double) (originalFileSize - fileSize) / originalFileSize << endl;
-        cout << "depth: " << getDepth() << endl;
-        if (abs(fileSize - targetCompression) < best) {
-            best = abs(fileSize - targetCompression);
-            copyBlock(bestBlock);
-            threshold = currThreshold;
-        }
-        if (fileSize > targetCompression){
+    double l = 0, r = getError(block);
+    int fileSize;
+
+    while (r - l > 0.001) {
+        threshold = (r+l)/2;
+        divConq(threshold, image);
+
+        fileSize = exportImage(exportPath, block, width, height);
+        double percentage = (double) (originalFileSize - fileSize) / originalFileSize;
+        // cout << threshold << ' ' << currNodeNum << ' ' << numNodes << ' ' << targetCompression << ' ' << fileSize << ' ' << percentage << endl;
+        if (abs(percentage - percentageTarget) < 0.001) {
             break;
         }
+        if (fileSize > targetCompression){
+            l = threshold;
+        }
+        else{
+            r = threshold;
+        }
     }
-    while (currThreshold != -1);
+    
     cout << "✅ Gambar berhasil diekspor ke: "<< exportPath << endl;
-    int fileSize = exportImage(exportPath, bestBlock, width, height);
-    delete[] bestBlock;
     return fileSize;
 }
 

@@ -60,7 +60,7 @@ public:
     double getError(RGB* Block);
 
     void divConq();
-    double divConq(double currentThreshold, RGB* referenceBlock);
+    void divConq(double currentThreshold, RGB* referenceBlock);
     int compressImage(string exportPath, RGB* image, double targetCompression, int originalFileSize);
 
     void colorNormalization();
