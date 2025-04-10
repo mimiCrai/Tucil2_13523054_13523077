@@ -329,25 +329,29 @@ void QuadTree::divConq(double currentThreshold, RGB* referenceBlock){
     double Error = getError(referenceBlock);
     if(Error >= currentThreshold && currentHeight/2 >= minimumBlockSize && currentWidth/2 >= minimumBlockSize)
     {
-        if(isSmallest){
-            isSmallest = false;
-            //bagi block jadi 4
-            int halfHeight = currentHeight / 2;
-            int halfWidth = currentWidth / 2;
-            int remainingHeight = currentHeight - halfHeight;
-            int remainingWidth = currentWidth - halfWidth;
+        isSmallest = false;
+        //bagi block jadi 4
+        int halfHeight = currentHeight / 2;
+        int halfWidth = currentWidth / 2;
+        int remainingHeight = currentHeight - halfHeight;
+        int remainingWidth = currentWidth - halfWidth;
 
+        if (topLeftChild == nullptr)
             topLeftChild = new QuadTree(halfHeight, halfWidth, startHeight, startWidth);
+        if (topRightChild == nullptr)
             topRightChild = new QuadTree(halfHeight, remainingWidth, startHeight, startWidth + halfWidth);
+        if (bottomLeftChild == nullptr)
             bottomLeftChild = new QuadTree(remainingHeight, halfWidth, startHeight + halfHeight, startWidth);
+        if (bottomRightChild == nullptr)
             bottomRightChild = new QuadTree(remainingHeight, remainingWidth, startHeight + halfHeight, startWidth + halfWidth);
-        }
+
         topLeftChild->divConq(currentThreshold, referenceBlock);
         topRightChild->divConq(currentThreshold, referenceBlock);
         bottomLeftChild->divConq(currentThreshold, referenceBlock);
         bottomRightChild->divConq(currentThreshold, referenceBlock);
     }
     else {
+        isSmallest = true;
         colorNormalization(referenceBlock, block, imageData);
     }
 }
