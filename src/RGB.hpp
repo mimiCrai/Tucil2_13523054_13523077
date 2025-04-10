@@ -17,7 +17,7 @@ public:
     friend RGB max(RGB a, RGB b);
     RGB& operator=(const RGB& other);
     RGB& operator+=(const RGB& other);
-    RGB& operator/=(const int x);
+    RGB& operator/=(const double x);
     ~RGB();
 };
 

@@ -79,7 +79,6 @@ void imageToBlock(RGB* &block, int width, int height){
             }
         }
     }
-    cout << block << endl;
 }
 
 
