@@ -209,22 +209,21 @@ double QuadTree::structuralSimilarityIndex(RGB* Block)
     double structural_similarity_index = 0;
     RGB mean = getMean(Block);
     int total_pixel = currentHeight * currentWidth;
-    double sum_x_2_red = 0, sum_x_y_red = 0;
-    double sum_x_2_green = 0, sum_x_y_green = 0;
-    double sum_x_2_blue = 0, sum_x_y_blue = 0;
+    double sum_x_2_red = 0, sum_x_2_blue = 0, sum_x_2_green = 0;
+    // double sum_x_y_red = 0, sum_x_y_blue = 0, sum_x_y_green = 0;
 
     for (int i = startHeight; i < startHeight + currentHeight; i++)
     {
         for (int j = startWidth; j < startWidth + currentWidth; j++)
         {
             sum_x_2_red += pow(getValue(i, j, Block).red, 2);
-            sum_x_y_red += getValue(i, j, Block).red * mean.red;
+            // sum_x_y_red += getValue(i, j, Block).red * mean.red;
 
             sum_x_2_green += pow(getValue(i, j, Block).green, 2);
-            sum_x_y_green += getValue(i, j, Block).green * mean.green;
+            // sum_x_y_green += getValue(i, j, Block).green * mean.green;
 
             sum_x_2_blue += pow(getValue(i, j, Block).blue, 2);
-            sum_x_y_blue += getValue(i, j, Block).blue * mean.blue;
+            // sum_x_y_blue += getValue(i, j, Block).blue * mean.blue;
         }
     }
     
@@ -232,9 +231,9 @@ double QuadTree::structuralSimilarityIndex(RGB* Block)
     double var_x_green = sum_x_2_green / total_pixel - mean.green * mean.green;
     double var_x_blue = sum_x_2_blue / total_pixel - mean.blue * mean.blue;
 
-    double var_xy_red = sum_x_y_red / total_pixel - mean.red * mean.red;
-    double var_xy_green = sum_x_y_green / total_pixel - mean.green * mean.green;
-    double var_xy_blue = sum_x_y_blue / total_pixel - mean.blue * mean.blue;
+    // double var_xy_red = sum_x_y_red / total_pixel - mean.red * mean.red;
+    // double var_xy_green = sum_x_y_green / total_pixel - mean.green * mean.green;
+    // double var_xy_blue = sum_x_y_blue / total_pixel - mean.blue * mean.blue;
 
 
     /*
@@ -244,45 +243,48 @@ double QuadTree::structuralSimilarityIndex(RGB* Block)
     block kompresi bernilai 0, sehingga tidak perlu dimasukkan ke rumus.
     2. Karena alasan yang sama, maka numerator pertama yang merupakan (2*mean.color*mean.color + c1) akan selalu bernilai sama dengan
     denominator pertama yang bernilai (mean.color*mean.color + mean.color*mean.color + c1), sehingga kita bisa menghilangkannya.
+    3. Hasil dari var_xy_color juga pasti bernilai 0, karena sum_x_y_color merupakan hasil kuadrat dari rata-rata, sama dengan pengurangnya nanti saat menghitung var_xy_color, sehingga var_xy_color juga bisa dihilangkan.
     */
-    double c1 = 6.5025, c2 = 58.5225;
+    //double c1 = 6.5025
+    double c2 = 58.5225;
 
-    double n_red = (2 * var_xy_red + c2);
+    double n_red = c2;
     double d_red = (var_x_red + c2);
+
+    double Wred = 0.2989, Wgreen = 0.5870, Wblue = 0.1140;
     if(d_red == 0)
     {
-        structural_similarity_index += 1;
+        structural_similarity_index += 1 * Wred;
     }
     else
     {
-        structural_similarity_index += n_red / d_red;
+        structural_similarity_index += (n_red / d_red) * Wred;
     }
 
-    double n_green = (2 * var_xy_green + c2);
+    double n_green = c2;
     double d_green = (var_x_green + c2);
     structural_similarity_index += n_green / d_green;
     if(d_green == 0)
     {
-        structural_similarity_index += 1;
+        structural_similarity_index += 1 * Wgreen;
     }
     else
     {
-        structural_similarity_index += n_green / d_green;
+        structural_similarity_index += (n_green / d_green) * Wgreen;
     }
 
-    double n_blue = (2 * var_xy_blue + c2);
+    double n_blue = c2;
     double d_blue = (var_x_blue + c2);
     structural_similarity_index += n_blue / d_blue;
     if(d_blue == 0)
     {
-        structural_similarity_index += 1;
+        structural_similarity_index += 1 * Wblue;
     }
     else
     {
-        structural_similarity_index += n_blue / d_blue;
+        structural_similarity_index += (n_blue / d_blue) * Wblue;
     }
 
-    structural_similarity_index /= 3;
     return structural_similarity_index;
 }
 
